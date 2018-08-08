@@ -339,65 +339,65 @@ Route::post('createevent', function (Request $request) {
   ];
 });
 
-Route::post('createflight', function (Request $request) {
-    $request = $request->json()->all();
+// Route::post('createflight', function (Request $request) {
+//     $request = $request->json()->all();
 
-    if (empty($request['access_key']) || empty($request['data']['event']['id']) || empty($request['data']['aircraft']['callsign'])) {
-        return [
-          'response' => 'error',
-          'remark'   => 'missing some/all payload',
-      ];
-    }
+//     if (empty($request['access_key']) || empty($request['data']['event']['id']) || empty($request['data']['aircraft']['callsign'])) {
+//         return [
+//           'response' => 'error',
+//           'remark'   => 'missing some/all payload',
+//       ];
+//     }
 
-    if (!(App\ACCESS::where('key', $request['access_key'])->exists())) {
-        return [
-          'response' => 'error',
-          'remark'   => 'access denined',
-      ];
-    }
+//     if (!(App\ACCESS::where('key', $request['access_key'])->exists())) {
+//         return [
+//           'response' => 'error',
+//           'remark'   => 'access denined',
+//       ];
+//     }
 
-    $data = $request['data'];
-    $flight_id = str_random(128);
+//     $data = $request['data'];
+//     $flight_id = str_random(128);
 
-    if (!(App\EVENT::where('token', $request['access_key'])->where('event_id', $data['event']['id'])->exists())) {
-        return [
-          'response' => 'error',
-          'remark'   => 'event not found',
-      ];
-    }
+//     if (!(App\EVENT::where('token', $request['access_key'])->where('event_id', $data['event']['id'])->exists())) {
+//         return [
+//           'response' => 'error',
+//           'remark'   => 'event not found',
+//       ];
+//     }
 
-    if (App\FLIGHT::where('aircraft_callsign', $data['aircraft']['callsign'])->where('event_id', $data['event']['id'])->exists()) {
-        return [
-      'response' => 'error',
-      'remark'   => 'callsign is already existed',
-    ];
-    }
+//     if (App\FLIGHT::where('aircraft_callsign', $data['aircraft']['callsign'])->where('event_id', $data['event']['id'])->exists()) {
+//         return [
+//       'response' => 'error',
+//       'remark'   => 'callsign is already existed',
+//     ];
+//     }
 
-    $flight = new App\FLIGHT();
-    $flight->event_id = $data['event']['id'];
-    $flight->flight_id = $flight_id;
-    $flight->aircraft_callsign = $data['aircraft']['callsign'];
-    $flight->save();
+//     $flight = new App\FLIGHT();
+//     $flight->event_id = $data['event']['id'];
+//     $flight->flight_id = $flight_id;
+//     $flight->aircraft_callsign = $data['aircraft']['callsign'];
+//     $flight->save();
 
-    return [
-      'response' => 'success',
-      'data'     => [
-          'flight' => [
-              'id'       => $flight_id,
-              'aircraft' => [
-                'callsign' => $data['aircraft']['callsign'],
-              ],
-          ],
-      ],
-  ];
-});
+//     return [
+//       'response' => 'success',
+//       'data'     => [
+//           'flight' => [
+//               'id'       => $flight_id,
+//               'aircraft' => [
+//                 'callsign' => $data['aircraft']['callsign'],
+//               ],
+//           ],
+//       ],
+//   ];
+// });
 
 Route::post('reserveflight', function (Request $request) {
     $request = $request->json()->all();
 
     App\CONFIRMPOOL::where('ticket_timeout', '<', Carbon\Carbon::now())->delete();
 
-    if (empty($request['access_key']) || empty($request['data']['event']['id']) || empty($request['data']['flight']['id']) || empty($request['data']['user']['division']) || empty($request['data']['user']['vid']) || empty($request['data']['user']['email']) || empty($request['data']['user']['rating']) || empty($request['data']['aircraft']['model']) || empty($request['data']['flight']['rule']) || empty($request['data']['flight']['type']) || empty($request['data']['flight']['load']) || empty($request['data']['time']['departure']) || empty($request['data']['time']['arrival'])) {
+    if (empty($request['access_key']) || empty($request['data']['event']['id']) || empty($request['data']['user']['division']) || empty($request['data']['user']['vid']) || empty($request['data']['user']['email']) || empty($request['data']['user']['rating']) || empty($request['data']['aircraft']['callsign']) || empty($request['data']['aircraft']['model']) || empty($request['data']['flight']['rule']) || empty($request['data']['flight']['type']) || empty($request['data']['flight']['load']) || empty($request['data']['time']['departure']) || empty($request['data']['time']['arrival'])) {
         return [
           'response' => 'error',
           'remark'   => 'missing some/all payload',
@@ -425,21 +425,14 @@ Route::post('reserveflight', function (Request $request) {
 
     if (Carbon\Carbon::parse($event_booking_time['booktime_start'])->isFuture()) {
         return [
-      'response' => 'error',
-      'remark'   => 'booking is not start yet',
-    ];
+          'response' => 'error',
+          'remark'   => 'booking is not start yet',
+      ];
     }
     if (Carbon\Carbon::parse($event_booking_time['booktime_end'])->isPast()) {
         return [
-      'response' => 'error',
-      'remark'   => 'booking is expired',
-    ];
-    }
-
-    if (!(App\FLIGHT::where('event_id', $data['event']['id'])->where('flight_id', $data['flight']['id'])->exists())) {
-        return [
           'response' => 'error',
-          'remark'   => 'flight not found',
+          'remark'   => 'booking is expired',
       ];
     }
 
@@ -456,11 +449,11 @@ Route::post('reserveflight', function (Request $request) {
     ];
     }
 
-    $check = App\FLIGHT::select('user_vid')->where('event_id', $data['event']['id'])->where('flight_id', $data['flight']['id'])->first();
+    $check = App\FLIGHT::select('user_vid')->where('event_id', $data['event']['id'])->where('aircraft_callsign', $data['aircraft']['callsign'])->first();
     if ($check['user_vid'] != null) {
         return [
         'response' => 'error',
-        'remark'   => 'flight already reserved',
+        'remark'   => 'callsign duplicated',
     ];
     }
 
@@ -473,6 +466,7 @@ Route::post('reserveflight', function (Request $request) {
     $pool->user_vid = $data['user']['vid'];
     $pool->user_email = $data['user']['email'];
     $pool->user_rating = $data['user']['rating'];
+    $pool->aircraft_callsign = $data['aircraft']['callsign'];
     $pool->aircraft_model = $data['aircraft']['model'];
     $pool->flight_rule = $data['flight']['rule'];
     $pool->flight_type = $data['flight']['type'];

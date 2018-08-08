@@ -28,27 +28,30 @@ Route::get('confirm/{code}', function ($code) {
 
     $data = App\CONFIRMPOOL::where('ticket_code', $code)->first();
 
-    $check = App\FLIGHT::select('user_vid')->where('event_id', $data['event_id'])->where('flight_id', $data['flight_id'])->first();
+    $check = App\FLIGHT::select('user_vid')->where('aircraft_callsign', $data['aircraft_callsign'])->first();
     if ($check['user_vid'] == 'null') {
         App\CONFIRMPOOL::where('ticket_code', $code)->delete();
 
         return view('page.confirm.tooslow');
     }
 
-    $flight = [
-        'user_division'  => $data['user_division'],
-        'user_vid'       => $data['user_vid'],
-        'user_email'     => $data['user_email'],
-        'user_rating'    => $data['user_rating'],
-        'aircraft_model' => $data['aircraft_model'],
-        'flight_rule'    => $data['flight_rule'],
-        'flight_type'    => $data['flight_type'],
-        'flight_load'    => $data['flight_load'],
-        'time_departure' => $data['time_departure'],
-        'time_arrival'   => $data['time_arrival'],
-    ];
+    $flight = new App\FLIGHT;
+    $flight->event_id = $data['event_id'];
+    $flight->flight_id = $data['flight_id'];
+    $flight->user_division = $data['user_division'];
+    $flight->user_vid = $data['user_vid'];
+    $flight->user_email = $data['user_email'];
+    $flight->user_rating = $data['user_rating'];
+    $flight->aircraft_callsign = $data['aircraft_callsign'];
+    $flight->aircraft_model = $data['aircraft_model'];
+    $flight->flight_rule = $data['flight_rule'];
+    $flight->flight_type = $data['flight_type'];
+    $flight->flight_load = $data['flight_load'];
+    $flight->time_departure = $data['time_departure'];
+    $flight->time_arrival = $data['time_arrival'];
+    $flight->save();
 
-    if (App\FLIGHT::where('flight_id', $data['flight_id'])->update($flight)) {
+    if (App\FLIGHT::where('flight_id', $data['flight_id'])->exists()) {
         App\CONFIRMPOOL::where('ticket_code', $code)->delete();
 
         return view('page.confirm.success');
