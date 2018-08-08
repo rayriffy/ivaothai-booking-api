@@ -35,7 +35,7 @@ Route::get('confirm/{code}', function ($code) {
         return view('page.confirm.tooslow');
     }
 
-    $flight = new App\FLIGHT;
+    $flight = new App\FLIGHT();
     $flight->event_id = $data['event_id'];
     $flight->flight_id = $data['flight_id'];
     $flight->user_division = $data['user_division'];
