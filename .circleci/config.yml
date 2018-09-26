@@ -1,19 +1,22 @@
 version: 2
 jobs:
   build:
-    working_directory: ~/ivaothai-booking
+    working_directory: ~/workspace
     docker:
-      - image: rayriffy/composer-yarn:latest
+      - image: registry.gitlab.com/rayriffy/rayriffy-com/composer-yarn:latest
+        auth:
+          username: $REGISTRY_USER
+          password: $REGISTRY_PASS
         environment:
           DEPLOY_HOST: $DEPLOY_HOST
           DEPLOY_COMMAND: $DEPLOY_COMMAND
-      - image: mysql:5.7
-        command: mysqld --character-set-server=utf8mb4 --collation-server=utf8mb4_bin
-        environment:
-          MYSQL_USER: homestead
-          MYSQL_PASSWORD: secret
-          MYSQL_DATABASE: homestead
-          MYSQL_ALLOW_EMPTY_PASSWORD: true
+      # - image: mysql:5.7
+      #   command: mysqld --character-set-server=utf8mb4 --collation-server=utf8mb4_bin
+      #   environment:
+      #     MYSQL_USER: homestead
+      #     MYSQL_PASSWORD: secret
+      #     MYSQL_DATABASE: homestead
+      #     MYSQL_ALLOW_EMPTY_PASSWORD: true
     steps:
       - checkout
       - run:
@@ -32,22 +35,51 @@ jobs:
           name: Generate Key
           command: |
             php artisan key:generate
-      - run:
-          name: Migrate Database
-          command: |
-            php artisan migrate --force
+      # - run:
+      #     name: Migrate Database
+      #     command: |
+      #       php artisan migrate --force
   deploy:
     machine:
         enabled: true
-    working_directory: ~/ivaothai-booking
+    working_directory: ~/workspace
     steps:
       - add_ssh_keys:
           fingerprints:
-            - "c7:29:52:e0:f0:33:ca:91:1b:30:3a:96:1f:34:a7:fd"
+            - "7a:64:ff:ff:10:61:8f:f5:22:9a:60:d7:f9:d9:62:93"
       - run:
-          name: Deploy Server
+          name: Get rayriffy-com repo
           command: |
-            ssh -i ~/.ssh/id_rsa_c72952e0f033ca911b303a961f34a7fd $DEPLOY_HOST 'cd ~/production/booking.ivaothai.com && git pull && composer install && php71 artisan migrate'
+            git clone git@gitlab.com:rayriffy/rayriffy-com.git
+            cd rayriffy-com/web/data/html
+            mkdir ~/tmp
+            mv booking.ivaothai.com/.env ~/tmp/.env
+            rm -rf booking.ivaothai.com
+      - run:
+          name: Get Code
+          command: |
+            cd rayriffy-com/web/data/html
+            git clone git@github.com:rayriffy/ivaothai-booking-api.git booking.ivaothai.com
+            cd booking.ivaothai.com
+            git checkout release
+      - run:
+          name: Remove Git folder
+          command: |
+            cd rayriffy-com/web/data/html/booking.ivaothai.com
+            ls -l -a
+            rm -rf .git/
+            rm -rf .gitignore
+            rm -rf .circleci/
+            mv ~/tmp/.env ./.env
+      - run:
+          name: Push
+          command: |
+            cd rayriffy-com/web/data/html/booking.ivaothai.com
+            git config --global user.name "Autobot"
+            git config --global user.email bot@rayriffy.com
+            git add .
+            git commit -m "[AUTO] booking.ivaothai.com Deploy Triggered"
+            git push origin master
 workflows:
   version: 2
   build-and-deploy:
